@@ -53,3 +53,8 @@ Se selecciona un subconjunto de $c$ hilos, donde $0 \leq c \leq n$. En cada iter
 
 Utilizar el **algoritmo de Bresenham** para determinar qué píxeles componen cada línea.
 
+## 5. Bibliografía
+
+https://aprendeconalf.es/docencia/python/manual/numpy/
+
+
