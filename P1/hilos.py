@@ -221,7 +221,7 @@ def bresenham_dibujo(linea, imagen_resultado, imagen):
     # 4 - Bucle para trazado
     # Usamos un bucle que corra 'dx' veces (que ahora es el eje mayor)
     for _ in range(dx + 1):
-        imagen_resultado[y][x] = max(0, imagen_resultado[y][x] - (linea.nivel_gris*0.005))  # Reducir el nivel de gris del pixel actual para "dibujar" la línea
+        imagen_resultado[y][x] = max(0, imagen_resultado[y][x] - ((255 - linea.nivel_gris)*0.05))  # Reducir el nivel de gris del pixel actual para "dibujar" la línea
         imagen[y][x] = min(255, imagen[y][x] + 2)  # Aumentar el nivel de gris del pixel actual para "dibujar" la línea
         if av >= 0:
             x += inc_xi
