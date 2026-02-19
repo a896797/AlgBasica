@@ -18,19 +18,21 @@ def crear_diccionario (path, diccionario) :
         diccionario.tamano += 1
 
 def variante1(diccionario, palabra_ini, texto, acum, resultado):
-    if acum in diccionario.palabras and acum != ''and :
-
+    if acum in diccionario.palabras and acum != '':
         print(texto + "Texto")
         print(acum + "Acum")
-        resultado1 = resultado.copy()
-        variante1(diccionario, palabra_ini, texto[1:], acum + texto[0:1], resultado1)
+        if texto[0:1] != '':
+            resultado1 = resultado.copy()
+            variante1(diccionario, palabra_ini, texto[1:], acum + texto[0:1], resultado1)
         resultado.append(acum)
         print(resultado, "Resultado")
         variante1(diccionario, palabra_ini, texto[1:], texto[0:1], resultado)
+
     elif len(texto) > 0:
         print(texto + "Texto")
         print(acum + "Acum")
         variante1(diccionario, palabra_ini, texto[1:], acum + texto[0:1], resultado)
+
     else:
         res =""
         for palabra in resultado:
