@@ -1,0 +1,21 @@
+1. ORGANIZACIÓN:
+* pruebas/: Carpeta que contiene los diccionarios y textos (.txt).
+* separarPalabras.py: Código principal con las 3 variantes.
+* tests_aleatorios.py: Script para la experimentación (Tarea 3).
+* ejecutar.sh / scr.bat: Automatización para Linux y Windows.
+
+--------------------------
+2. EJECUCIÓN:
+Dar permisos: chmod +x ejecutar.sh
+
+- Ejecutar TODO:
+  ./ejecutar.sh 0
+  (Nota: El script busca automáticamente dentro de la carpeta pruebas/)
+
+- Ejecutar pruebas con palabras aleatorias:
+  ./ejecutar.sh <variante> pruebas/<diccionario>
+  (Ejemplo: ./ejecutar.sh 1 pruebas/diccionario3.txt)
+
+- Ejecución INDIVIDUAL:
+  ./ejecutar.sh <variante> pruebas/<diccionario> pruebas/<texto>
+  (Ejemplo: ./ejecutar.sh 1 pruebas/diccionario3.txt pruebas/texto1.1.txt)
