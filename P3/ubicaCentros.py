@@ -1,7 +1,8 @@
-from ast import List
+from typing import List
 import numpy as np
 import sys
 from dataclasses import dataclass
+import matplotlib.pyplot as plt
 
 n_casos = 0
 @dataclass
@@ -51,6 +52,7 @@ def leer_casos (path, casos) :
             idx += 1
         
         centros_existentes = list(map(int, lineas[idx].strip().split()))
+        centros_existentes = [c - 1 for c in centros_existentes]  # Convertir a 0-based
         idx += 1
         
         caso = Caso_prueba(
@@ -85,80 +87,92 @@ def calcular_distancias(caso):
     return dist, 1
 
 
-def seleccion_centros(caso, centros_faltantes, centros_actuales=None):
+def seleccion_centros(caso, centros_faltantes, centros_actuales=None, centros_iniciales=None):
     if centros_actuales is None:
         centros_actuales = caso.centros_act.copy()
+        centros_iniciales = centros_actuales.copy()
     
     if centros_faltantes == 0:
-        return calcular_distancias(caso)
+        dist, _ = calcular_distancias(caso)
+        centros_nuevos = [c for c in centros_actuales if c not in centros_iniciales]
+        return dist, 1, centros_nuevos
     
     mejor_distancia = np.inf
     total_nodos = 1
+    mejores_centros = []
     
     for j in range(caso.n_localidades):
         if j not in centros_actuales:
             centros_actuales.append(j)
             caso.centros_act = centros_actuales
             
-            distancia, n_nodos = seleccion_centros(caso, centros_faltantes - 1, centros_actuales)
-            mejor_distancia = min(mejor_distancia, distancia)
+            distancia, n_nodos, centros_nuevos = seleccion_centros(caso, centros_faltantes - 1, centros_actuales, centros_iniciales)
+            if distancia < mejor_distancia:
+                mejor_distancia = distancia
+                mejores_centros = centros_nuevos
             total_nodos += n_nodos
             
             centros_actuales.pop()
     
-    return mejor_distancia, total_nodos
+    return mejor_distancia, total_nodos, mejores_centros
 
 
-def seleccion_centros_con_poda(caso, centros_faltantes, centros_actuales=None, mejor_dist_global=None, contador_nodos=None):
-
+def seleccion_centros_con_poda(caso, centros_faltantes, centros_actuales=None, centros_iniciales=None, mejor_global=None):
     if centros_actuales is None:
         centros_actuales = caso.centros_act.copy()
-        mejor_dist_global = [np.inf]  # Mejor distancia encontrada hasta ahora
-        contador_nodos = [0]  # Total de nodos explorados
-    
-    contador_nodos[0] += 1  # Contar este nodo
+        centros_iniciales = centros_actuales.copy()
+        mejor_global = [np.inf]
     
     if centros_faltantes == 0:
-        dist_actual, _ = calcular_distancias(caso)
-        if dist_actual < mejor_dist_global[0]:
-            mejor_dist_global[0] = dist_actual
-        return dist_actual, 1
+        dist, _ = calcular_distancias(caso)
+        centros_nuevos = [c for c in centros_actuales if c not in centros_iniciales]
+        if dist < mejor_global[0]:
+            mejor_global[0] = dist
+        return dist, 1, centros_nuevos
+    
+    opciones = []
+    for j in range(caso.n_localidades):
+        if j not in centros_actuales:
+            centros_temp = centros_actuales + [j]
+            caso.centros_act = centros_temp
+            dist_parcial, _ = calcular_distancias(caso)
+            opciones.append((dist_parcial, j))
+    
+    opciones.sort()
     
     mejor_distancia = np.inf
     total_nodos = 1
+    mejores_centros = []
     
-    for j in range(caso.n_localidades):
-        if j not in centros_actuales:
-            centros_actuales.append(j)
-            caso.centros_act = centros_actuales
-            
-            dist_actual, _ = calcular_distancias(caso)
-            
-            # Poda: solo explorar si esta rama puede mejorar la mejor solución
-            if dist_actual < mejor_dist_global[0]:
-                distancia, n_nodos = seleccion_centros_con_poda(
-                    caso, 
-                    centros_faltantes - 1, 
-                    centros_actuales,
-                    mejor_dist_global,
-                    contador_nodos
-                )
-                mejor_distancia = min(mejor_distancia, distancia)
-                total_nodos += n_nodos
-            
-            centros_actuales.pop()
+    for dist_parcial, j in opciones:
+        if dist_parcial >= mejor_global[0]:
+            break  
+        
+        centros_actuales.append(j)
+        caso.centros_act = centros_actuales
+        
+        distancia, n_nodos, centros_nuevos = seleccion_centros_con_poda(caso, centros_faltantes - 1, centros_actuales, centros_iniciales, mejor_global)
+        if distancia < mejor_distancia:
+            mejor_distancia = distancia
+            mejores_centros = centros_nuevos
+        total_nodos += n_nodos
+        
+        centros_actuales.pop()
     
-    return mejor_distancia, total_nodos
+    if mejor_distancia == np.inf:
+        return mejor_global[0], total_nodos, []
+    
+    return mejor_distancia, total_nodos, mejores_centros
 
 
 
 def mostrar_resultados(resultados, output_path=None):
     lineas_salida = []
     
-    for tiempo_ms, n_nodos, valor_optimo, caso in resultados:
+    for tiempo_ns, n_nodos, valor_optimo, caso in resultados:
         centros_ordenados = sorted([c + 1 for c in caso.centros_nuevos_puestos])
         
-        linea = f"{tiempo_ms} {n_nodos} {valor_optimo}"
+        linea = f"{tiempo_ns:.2f} {n_nodos} {valor_optimo}"
         
         for centro in centros_ordenados:
             linea += f" {centro}"
@@ -193,7 +207,7 @@ def main(args):
         print("Error: formato debe ser 0 (sin poda) o 1 (con poda)")
         sys.exit(1)
     
-    casos = List[Caso_prueba]()
+    casos = []
     leer_casos(fichero_entrada, casos)
     
     resultados = []
@@ -202,17 +216,16 @@ def main(args):
         inicio = time.time()
         
         if formato == 0:
-            valor_optimo, n_nodos = seleccion_centros(caso, caso.centros_nuevos)
+            valor_optimo, n_nodos, centros_nue = seleccion_centros(caso, caso.centros_nuevos)
         else:
-            valor_optimo, n_nodos = seleccion_centros_con_poda(caso, caso.centros_nuevos)
+            valor_optimo, n_nodos, centros_nue = seleccion_centros_con_poda(caso, caso.centros_nuevos)
         
         fin = time.time()
-        tiempo_ms = int((fin - inicio) * 1000)
+        tiempo_ns = (fin - inicio) * 1000
         
-        centros_iniciales = caso.centros_act[:caso.n_centros_act]
-        caso.centros_nuevos_puestos = [c for c in caso.centros_act if c not in centros_iniciales]
+        caso.centros_nuevos_puestos = centros_nue
         
-        resultados.append((tiempo_ms, n_nodos, valor_optimo, caso))
+        resultados.append((tiempo_ns, n_nodos, valor_optimo, caso))
     
     mostrar_resultados(resultados, fichero_salida)
 
