@@ -2,7 +2,6 @@ from typing import List
 import numpy as np
 import sys
 from dataclasses import dataclass
-import matplotlib.pyplot as plt
 
 n_casos = 0
 @dataclass
