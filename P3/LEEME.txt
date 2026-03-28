@@ -1,0 +1,47 @@
+---------------------------------------------------------
+PRÁCTICA 3: BÚSQUEDA CON RETROCESO (BACKTRACKING)
+Asignatura: Algoritmia Básica
+Curso: 2025/26
+---------------------------------------------------------
+
+1. ORGANIZACIÓN DEL DIRECTORIO:
+* ubicaCentros.py
+* ejecutar.sh
+* pruebas/
+* informe.pdf
+
+---------------------------------------------------------
+2. REQUISITOS E INSTALACIÓN:
+El programa ha sido desarrollado para Python 3.8 o superior.
+Requiere la librería NumPy para el manejo de las matrices de distancias entre localidades.
+En lab000 no debería de hacer falta la librería.
+
+Para instalar la dependencia:
+$ pip install numpy
+
+---------------------------------------------------------
+3. INSTRUCCIONES DE EJECUCIÓN:
+Es necesario dar permisos de ejecución al script antes del primer uso:
+$ chmod +x ejecutar.sh
+
+A) EJECUCIÓN POR LOTES (MODO EXPERIMENTACIÓN):
+Este modo recorre automáticamente todos los archivos .txt dentro de la carpeta pruebas/ y genera un informe consolidado.
+Si "version" esun 0 se ejecuta la versión sin poda y si es un 1 la versión con poda.
+$ ./ejecutar.sh <version>
+
+Ejemplo (con poda): 
+$ ./ejecutar.sh 1
+
+B) EJECUCIÓN DE UN CASO INDIVIDUAL:
+$ ./ejecutar.sh <fichero_entrada> <fichero_salida> <version>
+
+Ejemplo (sin poda):
+$ ./ejecutar.sh pruebas/prueba_enunciado.txt resultados.txt 0
+
+
+---------------------------------------------------------
+4. REPETICIÓN DE LAS PRUEBAS:
+Para verificar los resultados de nuestro informe:
+1. Asegúrese de que los archivos de prueba (.txt) están dentro del directorio pruebas/.
+2. Ejecute el comando './ejecutar.sh 1'.
+3. Los resultados detallados (tiempo, nodos, valor óptimo y ubicación de centros) se guardarán en el archivo 'salida_todas_pruebas.txt'.
