@@ -1,0 +1,8 @@
+Caso 1:
+  Tiempo de ejecución: 148.541 ms
+  Valor óptimo (mínimo conflicto): 27
+----------------------------------------
+Caso 2:
+  Tiempo de ejecución: 64.059 ms
+  Valor óptimo (mínimo conflicto): 45
+----------------------------------------
