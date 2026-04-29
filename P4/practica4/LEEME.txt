@@ -7,11 +7,11 @@ pip install pulp (pip3 en lab000)
 
 EJECUCIÓN:
 
-1. Todas las pruebas (RECOMENDADO - desde carpeta P4):
+1. Todas las pruebas (RECOMENDADO - desde carpeta practica4):
    Windows:  python ejecutar_todas_pruebas.py
    Linux:    chmod +x ejecutar_todas_pruebas.sh && ./ejecutar_todas_pruebas.sh
 
-2. Algoritmos individuales (desde carpeta P4):
+2. Algoritmos individuales (desde carpeta practica4):
    
    Backtracking (Ramificación y Poda):
    $ python3 formarEquipos.py pruebas/pruebas_memoria.txt resultado_bt.txt
@@ -23,7 +23,7 @@ EJECUCIÓN:
    $ python3 formarEquipos.py entrada_prueba.txt salida.txt
    $ python3 programacion_lineal.py entrada_prueba.txt salida.txt
 
-3. Pruebas individuales (desde carpeta P4):
+3. Pruebas individuales (desde carpeta practica4):
    Solo pruebas principales:      python3 pruebas/ejecutar_pruebas_memoria.py
    Solo casos extremos:           python3 pruebas/pruebas_adicionales.py
    Solo comparativa BT vs PL:     python3 pruebas/comparar_algoritmos.py
