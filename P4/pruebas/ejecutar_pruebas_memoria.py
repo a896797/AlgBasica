@@ -11,12 +11,15 @@ import os
 import time
 from pathlib import Path
 
+P4_ROOT = Path(__file__).resolve().parent.parent
+PRUEBAS_DIR = Path(__file__).resolve().parent
+
 def ejecutar_pruebas():
     """Ejecuta las pruebas de memoria y genera estadísticas."""
     
-    script_path = Path(__file__).parent / "formarEquipos.py"
-    entrada = Path(__file__).parent / "pruebas_memoria.txt"
-    salida_temp = Path(__file__).parent / "salida_pruebas_memoria.txt"
+    script_path = P4_ROOT / "formarEquipos.py"
+    entrada = PRUEBAS_DIR / "pruebas_memoria.txt"
+    salida_temp = PRUEBAS_DIR / "salida_pruebas_memoria.txt"
     
     print("=" * 80)
     print("PRUEBAS COMPREHENSIVAS - FORMACIÓN DE EQUIPOS")

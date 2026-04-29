@@ -12,9 +12,12 @@ import time
 import json
 from pathlib import Path
 
+P4_ROOT = Path(__file__).resolve().parent.parent
+PRUEBAS_DIR = Path(__file__).resolve().parent
+
 def ejecutar_algoritmo(script_path, entrada, algoritmo_nombre):
     """Ejecuta un algoritmo y retorna los resultados."""
-    salida_temp = Path(__file__).parent / f"salida_{algoritmo_nombre}.txt"
+    salida_temp = PRUEBAS_DIR / f"salida_{algoritmo_nombre}.txt"
     
     print(f"\n{'=' * 80}")
     print(f"Ejecutando: {algoritmo_nombre.upper()}")
@@ -56,8 +59,7 @@ def ejecutar_algoritmo(script_path, entrada, algoritmo_nombre):
 def main():
     """Ejecuta análisis comparativo."""
     
-    base_path = Path(__file__).parent
-    entrada = base_path / "pruebas_memoria.txt"
+    entrada = PRUEBAS_DIR / "pruebas_memoria.txt"
     
     print("\n")
     print("╔" + "=" * 78 + "╗")
@@ -76,7 +78,7 @@ def main():
     
     # Backtracking
     resultado_bt = ejecutar_algoritmo(
-        base_path / "formarEquipos.py",
+        P4_ROOT / "formarEquipos.py",
         entrada,
         "backtracking"
     )
@@ -85,7 +87,7 @@ def main():
     
     # Programación Lineal
     resultado_pl = ejecutar_algoritmo(
-        base_path / "programacion_lineal.py",
+        P4_ROOT / "programacion_lineal.py",
         entrada,
         "programacion_lineal"
     )
@@ -102,16 +104,20 @@ def main():
             print(f"\n{r['algoritmo'].upper()}:")
             print(f"  ⏱️  Tiempo total: {r['tiempo_total_ms']:.2f} ms")
             print(f"  📤 Salida: {r['archivo_salida']}")
-        
+
         if len(resultados) == 2:
             bt_tiempo = resultados[0]['tiempo_total_ms']
             pl_tiempo = resultados[1]['tiempo_total_ms']
             ratio = max(bt_tiempo, pl_tiempo) / min(bt_tiempo, pl_tiempo)
             mas_rapido = "BT" if bt_tiempo < pl_tiempo else "PL"
-            
+
             print(f"\n📈 Análisis:")
             print(f"  {mas_rapido} es {ratio:.2f}x más rápido")
             print(f"  Diferencia: {abs(bt_tiempo - pl_tiempo):.2f} ms")
+        else:
+            print("\n❌ No se completó la comparación completa")
+            print("   Falta al menos una de las dos ejecuciones requeridas")
+            return False
     else:
         print("❌ No se completaron pruebas exitosas")
         return False

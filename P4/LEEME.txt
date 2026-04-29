@@ -1,0 +1,51 @@
+PRÁCTICA 4: RAMIFICACIÓN Y PODA, PROGRAMACIÓN LINEAL
+Asignatura: Algoritmia Básica - Curso 2025/26
+
+REQUISITOS:
+Python 3.8+
+pip install pulp (pip3 en lab000)
+
+EJECUCIÓN:
+
+1. Todas las pruebas (RECOMENDADO - desde carpeta P4):
+   Windows:  python ejecutar_todas_pruebas.py
+   Linux:    chmod +x ejecutar_todas_pruebas.sh && ./ejecutar_todas_pruebas.sh
+
+2. Algoritmos individuales (desde carpeta P4):
+   
+   Backtracking (Ramificación y Poda):
+   $ python formarEquipos.py pruebas/pruebas_memoria.txt resultado_bt.txt
+   
+   Programación Lineal:
+   $ python programacion_lineal.py pruebas/pruebas_memoria.txt resultado_pl.txt
+   
+   Con archivo personalizado:
+   $ python formarEquipos.py entrada_prueba.txt salida.txt
+   $ python programacion_lineal.py entrada_prueba.txt salida.txt
+
+3. Pruebas individuales (desde carpeta P4):
+   Solo pruebas principales:      python pruebas/ejecutar_pruebas_memoria.py
+   Solo casos extremos:           python pruebas/pruebas_adicionales.py
+   Solo comparativa BT vs PL:     python pruebas/comparar_algoritmos.py
+
+ESTRUCTURA:
+* formarEquipos.py          - Solución con Ramificación y Poda
+* programacion_lineal.py    - Solución con Programación Lineal
+* ejecutar_todas_pruebas.py - Script maestro (Windows/Linux)
+* ejecutar_todas_pruebas.sh - Script maestro (Linux)
+* pruebas/                  - Carpeta con casos de prueba
+  - pruebas_memoria.txt
+  - ejecutar_pruebas_memoria.py
+  - pruebas_adicionales.py
+  - comparar_algoritmos.py
+
+FORMATO DE ENTRADA:
+Bloques con:
+  - Primera línea: número de participantes N
+  - Siguientes N líneas: matriz N×N de conflictos (0-10)
+
+SALIDA:
+Tiempo de ejecución (ms), Número de nodos, Valor óptimo
+
+VALORES ESPERADOS:
+N=3: 27 | N=6: 45 | N=9: 44 | N=12: 148

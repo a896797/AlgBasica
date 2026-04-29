@@ -11,6 +11,12 @@ import os
 import time
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 def ejecutar_script(script_path, descripcion):
     """Ejecuta un script Python y muestra resultados."""
     print(f"\n{'=' * 80}")

@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Importar funciones del módulo principal
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from formarEquipos import leer_matrices_entrada, media_matriz, generar_todas_las_soluciones
 import time
 
