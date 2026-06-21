@@ -1,6 +1,7 @@
-
-import time
+import heapq
+import itertools
 import sys
+import time
 
 
 def leer_matrices_entrada(ruta_entrada):
@@ -42,74 +43,116 @@ def leer_matrices_entrada(ruta_entrada):
 
     return matrices
 
-def media_matriz(matriz):
-    """Devuelve la media de todos los elementos de una matriz."""
-    if not matriz or not matriz[0]:
-        raise ValueError("La matriz no puede estar vacia")
+
+def coste_equipo(matriz, p1, p2, p3):
+    """Nivel de conflicto de un equipo {p1, p2, p3}: suma de los conflictos
+    de cada participante hacia los otros dos miembros (c_ij no tiene por
+    que coincidir con c_ji, asi que se suman ambos sentidos)."""
+    return (
+        matriz[p1][p2] + matriz[p1][p3]
+        + matriz[p2][p1] + matriz[p2][p3]
+        + matriz[p3][p1] + matriz[p3][p2]
+    )
+
+
+def cota_resto(matriz, libres):
+    """Cota inferior (optimista) del conflicto que aportaran los equipos
+    que quedan por formar con los participantes de 'libres'.
+
+    Para cada participante libre i, en el mejor de los casos su conflicto
+    saliente hacia el resto del equipo sera al menos el minimo de c[i][x]
+    entre los demas libres, y su conflicto entrante sera al menos el
+    minimo de c[x][i] entre los demas libres. Sumando esas dos cantidades
+    para todos los libres se obtiene una cota que nunca sobreestima el
+    coste real restante (ningun equipo puede dar a un participante menos
+    conflicto que sus propios minimos), por lo que es valida para B&B:
+    nunca podra descartar la solucion optima.
+    """
+    if len(libres) < 2:
+        return 0
 
     total = 0
-    cantidad = 0
-
-    for fila in matriz:
-        for valor in fila:
-            total += valor
-            cantidad += 1
-
-    return total / cantidad
+    for i in libres:
+        min_saliente = min(matriz[i][x] for x in libres if x != i)
+        min_entrante = min(matriz[x][i] for x in libres if x != i)
+        total += min_saliente + min_entrante
+    return total
 
 
-def generar_todas_las_soluciones(participantes_libres, matriz_conflictos, media):
-    nodos_generados = 1
+def resolver_branch_and_bound(matriz):
+    """Ramificacion y poda con exploracion en orden de mejor cota (cola de
+    prioridad), tal como exige el esquema clasico de B&B.
 
-    # Si no quedan participantes, hemos completado una formación válida
-    if not participantes_libres:
-        return 0, nodos_generados
+    Representacion de un nodo: (cota, coste_parcial, equipos_formados, libres)
+    - equipos_formados: tupla de ternas ya cerradas
+    - libres: tupla de participantes aun sin asignar a ningun equipo
+    Un nodo es una solucion completa cuando libres == ().
 
-    if len(participantes_libres) < 3:
-        return float("inf"), nodos_generados
+    Ramificacion: se fija el participante de menor indice en 'libres' (p1)
+    y se genera un nodo hijo por cada pareja (p2, p3) posible que lo
+    acompane en su equipo. Esto evita generar la misma particion en
+    distinto orden (el numero de hojas del arbol es exactamente el numero
+    de particiones en equipos de 3, sin repeticiones).
 
-    # Para evitar soluciones duplicadas, fijamos el primer participante disponible
-    p1 = participantes_libres[0]
-    resto_tras_p1 = participantes_libres[1:]
-    
-    min_conflicto_total = float('inf')
-    
+    Poda: al explorar mejor-primero (menor cota primero), en cuanto la
+    cota del nodo extraido es >= a la mejor solucion completa encontrada,
+    se puede terminar toda la busqueda: ningun nodo pendiente en la cola
+    (todos con cota >= la del extraido) puede mejorar esa solucion.
+    """
+    n = len(matriz)
+    todos = tuple(range(n))
 
-    # Buscamos todas las parejas posibles (p2, p3) para acompañar a p1
-    for i in range(len(resto_tras_p1)):
-        for j in range(i + 1, len(resto_tras_p1)):
-            p2 = resto_tras_p1[i]
-            p3 = resto_tras_p1[j]
+    nodos_generados = 1  # contamos la raiz
+    cota_raiz = cota_resto(matriz, todos)
 
-            # Calculamos el conflicto de este equipo específico de 3
-            # Recuerda que c_ij no siempre es igual a c_ji [cite: 42, 43]
-            conflicto_equipo = (
-                matriz_conflictos[p1][p2] + matriz_conflictos[p1][p3] +
-                matriz_conflictos[p2][p1] + matriz_conflictos[p2][p3] +
-                matriz_conflictos[p3][p1] + matriz_conflictos[p3][p2]
-            )
+    # Cola de prioridad: (cota, coste_parcial, equipos_formados, libres)
+    # Se desempata por coste_parcial para que heapq no necesite comparar
+    # las tuplas/listas de equipos cuando las cotas coinciden.
+    contador_desempate = itertools.count()
+    frontera = [(cota_raiz, 0, next(contador_desempate), (), todos)]
 
-            # Creamos la lista de participantes que quedan para los siguientes equipos
-            nuevos_libres = [p for p in resto_tras_p1 if p != p2 and p != p3]
-            
-            conflicto_poda = conflicto_equipo + media * len(nuevos_libres)
-            if(conflicto_poda >= min_conflicto_total):
-                continue  # Poda: no exploramos esta rama si ya supera el mínimo encontrado
-            # Llamada recursiva para formar el resto de los equipos
-            resultado_recursivo, nodos_hijo = generar_todas_las_soluciones(
-                nuevos_libres,
-                matriz_conflictos,
-                media
-            )
-            nodos_generados += nodos_hijo
-            
-            # El conflicto total de esta rama es el de este equipo + el de los siguientes
-            conflicto_total = conflicto_equipo + resultado_recursivo 
-            # Guardamos la mejor solución encontrada en esta exploración completa
-            if conflicto_total < min_conflicto_total:
-                min_conflicto_total = conflicto_total
+    mejor_valor = float("inf")
 
-    return min_conflicto_total, nodos_generados
+    while frontera:
+        cota, coste_parcial, _, equipos_formados, libres = heapq.heappop(frontera)
+
+        # Poda global: como exploramos en orden creciente de cota, si este
+        # nodo ya no puede mejorar la mejor solucion conocida, ninguno de
+        # los nodos restantes en la frontera podra hacerlo tampoco.
+        if cota >= mejor_valor:
+            break
+
+        if not libres:
+            # Solucion completa: por construccion, coste_parcial == cota
+            mejor_valor = coste_parcial
+            continue
+
+        p1 = libres[0]
+        resto = libres[1:]
+
+        for i in range(len(resto)):
+            for j in range(i + 1, len(resto)):
+                p2, p3 = resto[i], resto[j]
+
+                nuevo_coste = coste_parcial + coste_equipo(matriz, p1, p2, p3)
+                nuevos_libres = tuple(p for p in resto if p != p2 and p != p3)
+
+                nueva_cota = nuevo_coste + cota_resto(matriz, nuevos_libres)
+                nodos_generados += 1
+
+                # Poda local: no encolamos nodos que ya no pueden mejorar
+                # la mejor solucion completa encontrada hasta el momento.
+                if nueva_cota >= mejor_valor:
+                    continue
+
+                nuevos_equipos = equipos_formados + ((p1, p2, p3),)
+                heapq.heappush(
+                    frontera,
+                    (nueva_cota, nuevo_coste, next(contador_desempate),
+                     nuevos_equipos, nuevos_libres),
+                )
+
+    return mejor_valor, nodos_generados
 
 
 def construir_reporte_resultados(resultados):
@@ -145,7 +188,8 @@ def escribir_resultados_salida(ruta_salida, resultados):
     with open(ruta_salida, "w", encoding="utf-8") as f:
         f.write(reporte + "\n")
 
-def main(args): 
+
+def main(args):
     if len(args) != 2:
         print("Uso: python formarEquipos.py <archivo_entrada>.txt <archivo_salida>.txt")
         return
@@ -160,18 +204,20 @@ def main(args):
 
     resultados = []
     for idx, matriz in enumerate(matrices_conflictos, 1):
-        media = media_matriz(matriz)
-        participantes = list(range(len(matriz)))
+        n = len(matriz)
+        if n % 3 != 0:
+            print(f"Saltando Caso {idx}: N={n} no es multiplo de 3")
+            continue
 
         inicio = time.perf_counter()
-        valor_optimo, nodos = generar_todas_las_soluciones(participantes, matriz, media)
+        valor_optimo, nodos = resolver_branch_and_bound(matriz)
         fin = time.perf_counter()
 
         tiempo_ms = (fin - inicio) * 1000
         resultados.append(
             {
                 "problema": idx,
-                "n": len(matriz),
+                "n": n,
                 "tiempo_ms": tiempo_ms,
                 "nodos": nodos,
                 "valor_optimo": valor_optimo,
@@ -185,7 +231,6 @@ def main(args):
     except OSError as e:
         print(f"Error al escribir el fichero de salida: {e}")
 
-if __name__ == "__main__":  
+
+if __name__ == "__main__":
     main(sys.argv[1:])
-
-
