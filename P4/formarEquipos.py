@@ -90,7 +90,7 @@ def resolver_branch_and_bound(matriz):
 
     Ramificacion: se fija el participante de menor indice en 'libres' (p1)
     y se genera un nodo hijo por cada pareja (p2, p3) posible que lo
-    acompane en su equipo. Esto evita generar la misma particion en
+    acompañe en su equipo. Esto evita generar la misma particion en
     distinto orden (el numero de hojas del arbol es exactamente el numero
     de particiones en equipos de 3, sin repeticiones).
 
