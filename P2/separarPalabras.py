@@ -6,12 +6,11 @@ import time
 # ==============================================================================
 # ESTRUCTURA DE DATOS
 # Se usa un set (tabla hash) en lugar de una lista para que la búsqueda de
-# palabras sea O(1) en lugar de O(n). Esto es crucial para que las diferencias
-# entre variantes sean apreciables.
+# palabras sea O(1) en lugar de O(n). Esto es esencial para que el coste del
+# algoritmo dependa del tamaño del texto y no del diccionario.
 # ==============================================================================
 
 def crear_diccionario(path: str) -> Set[str]:
-    """Lee el fichero y devuelve un conjunto (set) de palabras."""
     with open(path, 'r', encoding='utf-8') as f:
         contenido = f.read()
     return set(p.strip() for p in contenido.split(',') if p.strip())
@@ -19,26 +18,18 @@ def crear_diccionario(path: str) -> Set[str]:
 
 # ==============================================================================
 # VARIANTE 1 — Recursión pura (sin memoria)
-# Recorre todos los prefijos posibles del texto restante. Si un prefijo está
-# en el diccionario, explora recursivamente el sufijo. No almacena nada:
-# puede recalcular el mismo subproblema muchas veces.
-# Coste: exponencial en el peor caso — O(2^n) aproximadamente.
+#
+# Para cada posición 'inicio', prueba todos los prefijos posibles.
+# Si un prefijo está en el diccionario, llama recursivamente sobre el resto.
+# No guarda ningún resultado: si dos ramas distintas llegan al mismo sufijo,
+# lo recalcula desde cero. Coste: O(2^n) en el peor caso.
 # ==============================================================================
 
-def variante1(diccionario: Set[str], texto: str, inicio: int, resultado: List[str], todas: List[List[str]]):
-    """
-    Recursión pura. Explora todos los posibles cortes desde la posición 'inicio'.
-    - diccionario: conjunto de palabras válidas
-    - texto: cadena completa de entrada
-    - inicio: posición actual desde donde buscamos el siguiente corte
-    - resultado: lista de palabras encontradas hasta ahora (en esta rama)
-    - todas: lista acumuladora de todas las soluciones completas encontradas
-    """
+def variante1(diccionario: Set[str], texto: str, inicio: int,
+              resultado: List[str], todas: List[List[str]]):
     if inicio == len(texto):
-        # Hemos llegado al final: guardamos esta partición como solución válida
         todas.append(resultado[:])
         return
-
     for fin in range(inicio + 1, len(texto) + 1):
         sub = texto[inicio:fin]
         if sub in diccionario:
@@ -49,86 +40,64 @@ def variante1(diccionario: Set[str], texto: str, inicio: int, resultado: List[st
 
 # ==============================================================================
 # VARIANTE 2 — Recursión con memoización (top-down)
-# Igual que la variante 1, pero almacena en un diccionario (memo) si desde
-# la posición i existe al menos una partición válida. Así, si ya se calculó
-# que desde i no hay solución, no se vuelve a explorar.
-# Coste: O(n^2) llamadas distintas, cada una O(n) → O(n^3) total.
-# La memoización es útil sobre todo cuando hay muchas ramas sin solución.
+#
+# Igual que la variante 1 en estructura, pero guarda en memo[i] TODAS las
+# particiones válidas de texto[i:]. Si esa posición ya fue calculada,
+# se devuelve el resultado directamente sin volver a explorar nada.
+#
+# Diferencia clave con variante 1: si dos ramas distintas llegan al mismo
+# índice i, la segunda reutiliza memo[i] en O(1) en lugar de recomputar.
+#
+# Coste: O(n^2) subproblemas distintos, cada uno calculado exactamente una vez.
 # ==============================================================================
 
-def variante2_helper(diccionario: Set[str], texto: str, inicio: int,
-                     memo: Dict[int, bool]) -> bool:
-    """
-    Devuelve True si el sufijo texto[inicio:] puede particionarse.
-    Usa memo para no repetir cálculos.
-    """
-    if inicio == len(texto):
-        return True
-    if inicio in memo:
-        return memo[inicio]
-
-    for fin in range(inicio + 1, len(texto) + 1):
-        sub = texto[inicio:fin]
-        if sub in diccionario and variante2_helper(diccionario, texto, fin, memo):
-            memo[inicio] = True
-            return True
-
-    memo[inicio] = False
-    return False
-
-
 def variante2(diccionario: Set[str], texto: str, inicio: int,
-              resultado: List[str], todas: List[List[str]], memo: Dict[int, bool]):
-    """
-    Recursión con memoización. Antes de explorar una rama, comprueba si
-    desde esa posición existe alguna solución (usando memo). Si no la hay,
-    poda la rama y ahorra trabajo.
-    """
+              memo: Dict[int, List[List[str]]]) -> List[List[str]]:
     if inicio == len(texto):
-        todas.append(resultado[:])
-        return
+        return [[]]          # caso base: partición vacía, hemos llegado al fin
 
+    if inicio in memo:
+        return memo[inicio]  # ya calculado: devolvemos sin recomputar
+
+    resultado = []
     for fin in range(inicio + 1, len(texto) + 1):
         sub = texto[inicio:fin]
         if sub in diccionario:
-            # Poda: solo entramos si desde 'fin' existe al menos una solución
-            if variante2_helper(diccionario, texto, fin, memo):
-                resultado.append(sub)
-                variante2(diccionario, texto, fin, resultado, todas, memo)
-                resultado.pop()
+            # Obtenemos (memoizadas) todas las particiones del sufijo restante
+            for resto in variante2(diccionario, texto, fin, memo):
+                resultado.append([sub] + resto)
+
+    memo[inicio] = resultado  # guardamos TODAS las soluciones desde 'inicio'
+    return resultado
 
 
 # ==============================================================================
 # VARIANTE 3 — Programación dinámica con tabla (bottom-up)
-# Construye la tabla de izquierda a derecha: tabla[i] contiene todas las
-# listas de palabras que forman una partición válida de texto[0:i].
-# Cada subproblema se calcula UNA SOLA VEZ, en orden, sin recursión.
-# Coste: O(n^2) iteraciones × O(n) por comparación de subcadena → O(n^3).
-# Pero en la práctica es mucho más rápido que las variantes anteriores porque
-# no hay overhead de llamadas recursivas ni riesgo de repetición.
+#
+# Sin recursión. Construye tabla[0..n] de izquierda a derecha:
+#   tabla[i] = lista de todas las particiones válidas de texto[0:i]
+# Para cada j, mira todos los cortes (i,j): si texto[i:j] está en el
+# diccionario y tabla[i] no está vacía, extiende cada partición de tabla[i]
+# añadiendo texto[i:j] y lo guarda en tabla[j].
+# Cada subproblema se calcula exactamente una vez, sin overhead de recursión.
+#
+# Coste: O(n^2) iteraciones × O(n) por subcadena → O(n^3) pero sin recursión.
+# En la práctica es la variante más rápida para textos largos.
 # ==============================================================================
 
 def variante3(diccionario: Set[str], texto: str) -> List[List[str]]:
-    """
-    Tabla bottom-up. tabla[i] = lista de todas las particiones de texto[0:i].
-    Se avanza de izquierda a derecha; para cada posición j, se mira todos los
-    cortes (i, j) tales que texto[i:j] esté en el diccionario y tabla[i] no
-    esté vacía.
-    """
     n = len(texto)
-    # tabla[i] almacena todas las particiones válidas de texto[0:i]
     tabla: List[List[List[str]]] = [[] for _ in range(n + 1)]
-    tabla[0] = [[]]  # Base: la cadena vacía tiene una única partición: la vacía
+    tabla[0] = [[]]  # base: la cadena vacía tiene una única partición (vacía)
 
     for j in range(1, n + 1):
         for i in range(0, j):
             sub = texto[i:j]
             if sub in diccionario and tabla[i]:
-                # Para cada partición que llegaba a i, extendemos con 'sub'
                 for particion in tabla[i]:
                     tabla[j].append(particion + [sub])
 
-    return tabla[n]  # Todas las particiones válidas de la cadena completa
+    return tabla[n]
 
 
 # ==============================================================================
@@ -155,11 +124,7 @@ def main(args):
 
     elif variante_num == "2":
         memo = {}
-        todas = []
-        # Precalculamos la memo completa de una sola pasada
-        variante2_helper(diccionario, texto, 0, memo)
-        variante2(diccionario, texto, 0, [], todas, memo)
-        soluciones = todas
+        soluciones = variante2(diccionario, texto, 0, memo)
 
     elif variante_num == "3":
         soluciones = variante3(diccionario, texto)
@@ -170,7 +135,6 @@ def main(args):
 
     fin = time.perf_counter()
 
-    # Mostrar resultados
     if soluciones:
         print(f"Sí. La cadena '{texto}' se puede segmentar como:")
         for sol in soluciones:
